@@ -1,4 +1,4 @@
-module godupefinder
+module godedupe
 
 go 1.24.5
 
