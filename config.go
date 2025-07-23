@@ -25,21 +25,23 @@ type rawConfig struct {
 	IgnorePaths []string `json:"pathsToIgnore,omitempty"`
 }
 
-// LoadConfig reads JSON from path, decodes into rawConfig,
-// then normalizes Root and IgnorePaths (absolute, lowercase,
-// backslashes), and builds hash‐sets.
-func LoadConfig(path string) (Config, error) {
+// LoadConfig reads JSON from path and decodes it into a rawConfig struct.
+func LoadConfig(path string) (rawConfig, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return Config{}, err
+		return rawConfig{}, err
 	}
 	defer f.Close()
 
 	var raw rawConfig
 	if err := json.NewDecoder(f).Decode(&raw); err != nil {
-		return Config{}, err
+		return rawConfig{}, err
 	}
+	return raw, nil
+}
 
+// NewConfig processes a rawConfig to produce a final, validated Config.
+func NewConfig(raw rawConfig) (Config, error) {
 	// Determine Root
 	root := strings.TrimSpace(raw.Root)
 	if root == "" {
@@ -58,15 +60,10 @@ func LoadConfig(path string) (Config, error) {
 
 	cfg := Config{
 		Root:        root,
-		IgnoreDirs:  make(map[string]bool, len(raw.IgnoreDirs)),
-		IgnoreExts:  make(map[string]bool, len(raw.IgnoreExts)),
+		IgnoreDirs:  makeSet(raw.IgnoreDirs),
+		IgnoreExts:  makeSet(raw.IgnoreExts),
 		IgnorePaths: make(map[string]struct{}, len(raw.IgnorePaths)),
 	}
-
-	// Fill IgnoreDirs
-	cfg.IgnoreDirs = makeSet(raw.IgnoreDirs)
-	// Fill IgnoreExts
-	cfg.IgnoreExts = makeSet(raw.IgnoreExts)
 
 	// Normalize and fill IgnorePaths
 	for _, p := range raw.IgnorePaths {

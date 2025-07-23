@@ -21,7 +21,11 @@ Most of this file (README.md) has been written by Gemini-2.5-Pro.
 
 ## Configuration
 
-Create a `config.json` file in the project root with the following structure:
+Configuration can be provided via a JSON file and/or command-line flags. Flags will override any values set in the configuration file.
+
+### Configuration File
+
+Create a `config.json` file (or use a different name and specify it with the `-config` flag) with the following structure:
 
 ```json
 {
@@ -44,6 +48,20 @@ Create a `config.json` file in the project root with the following structure:
 *   `directoriesToIgnore`: A list of directory names to exclude from the scan.
 *   `extensionsToIgnore`: A list of file extensions to exclude from the scan.
 *   `pathsToIgnore`: A list of full paths to files or directories to exclude from the scan.
+
+### Command-line Flags
+
+*   `-config <path>`: Path to the configuration file (default: `config.json`).
+*   `-root <path>`: Root directory to scan (overrides config file).
+*   `-ignore-dir <name>`: Directory to ignore (can be specified multiple times).
+*   `-ignore-ext <ext>`: File extension to ignore (can be specified multiple times).
+*   `-ignore-path <path>`: Path to ignore (can be specified multiple times).
+
+**Example:**
+
+```bash
+go run . -root="C:\Users\YourUser\Documents" -ignore-ext=".tmp" -ignore-dir="cache"
+```
 
 ## Disclaimer
 

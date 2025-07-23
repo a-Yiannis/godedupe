@@ -78,9 +78,10 @@ func reportDuplicates(dupMap map[uint64][]string) uint32 {
 	}
 
 	if count > 0 {
-		fmt.Println("\nDuplicates found. See duplicates.log for a complete list.")
+		fmt.Printf("\nDuplicates %s%d%s found. See %sduplicates.log%s for a complete list.\n",
+			cyan, count, reset, cyan, reset)
 	} else {
-		fmt.Println("\nNo duplicates found.")
+		WriteCyan("\nNo duplicates found.\n")
 	}
 	return count
 }

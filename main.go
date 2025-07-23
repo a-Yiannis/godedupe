@@ -1,32 +1,73 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
 	"runtime"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 )
 
+// stringSlice is a custom flag type to handle multiple string flags
+type stringSlice []string
+
+func (i *stringSlice) String() string {
+	return fmt.Sprintf("%v", *i)
+}
+
+func (i *stringSlice) Set(value string) error {
+	*i = append(*i, value)
+	return nil
+}
+
 func main() {
 	start := time.Now()
 
-	configFilePath := "config.json" // Default config file
-	if len(os.Args) >= 2 {
-		configFilePath = os.Args[1]
-	}
-	cfg, err := LoadConfig(configFilePath)
-	if err != nil {
+	// --- Configuration Loading ---
+	var (
+		configPath  string
+		root        string
+		ignoreDirs  stringSlice
+		ignoreExts  stringSlice
+		ignorePaths stringSlice
+	)
+
+	flag.StringVar(&configPath, "config", "config.json", "Path to the configuration file.")
+	flag.StringVar(&root, "root", "", "Root directory to scan (overrides config file).")
+	flag.Var(&ignoreDirs, "ignore-dir", "Directory to ignore (can be specified multiple times).")
+	flag.Var(&ignoreExts, "ignore-ext", "File extension to ignore (can be specified multiple times).")
+	flag.Var(&ignorePaths, "ignore-path", "Path to ignore (can be specified multiple times).")
+	flag.Parse()
+
+	rawCfg, err := LoadConfig(configPath)
+	if err != nil && !os.IsNotExist(err) {
 		log.Fatalf("loadConfig: %v", err)
 	}
-	if cfg.Root == "" {
-		cfg.Root, err = os.Getwd()
-		if err != nil {
-			log.Fatalf("Getwd: %v", err)
-		}
+
+	// Override config with flags if they are set
+	if root != "" {
+		rawCfg.Root = root
 	}
+	if len(ignoreDirs) > 0 {
+		rawCfg.IgnoreDirs = append(rawCfg.IgnoreDirs, ignoreDirs...)
+	}
+	if len(ignoreExts) > 0 {
+		rawCfg.IgnoreExts = append(rawCfg.IgnoreExts, ignoreExts...)
+	}
+	if len(ignorePaths) > 0 {
+		rawCfg.IgnorePaths = append(rawCfg.IgnorePaths, ignorePaths...)
+	}
+
+	cfg, err := NewConfig(rawCfg)
+	if err != nil {
+		log.Fatalf("newConfig: %v", err)
+	}
+	// --- End Configuration Loading ---
+
 	fmt.Printf("Scanning %s …\n", cfg.Root)
 
 	// Phase 1: group by size
@@ -90,12 +131,12 @@ func main() {
 	}
 
 	// Report
-	reportDuplicates(dupMap)
+	count := reportDuplicates(dupMap)
 
 	elapsed := time.Since(start)
 	fmt.Printf("Elapsed: %s\n", elapsed)
 
-	if AskSimple("Should I recycle the duplicates?") {
+	if count > 0 && AskStrict("Should I recycle the duplicates?") {
 		recycle(dupMap)
 	}
 }
@@ -116,10 +157,10 @@ func recycle(dupMap map[uint64][]string) {
 		slices.SortFunc(paths, sortByModTime)
 
 		s := paths[1:]
-		fmt.Println(s)
-		if !AskSimple("Going to recycle this files, are you sure?") {
-			fmt.Println("File set skipped!")
-			return
+		fmt.Println("\n" + strings.Join(s, "\n\t"))
+		if !Ask("Going to recycle this files, are you sure?") {
+			WriteRed("\nFile set skipped!")
+			continue
 		}
 		for _, path := range paths[1:] {
 			fmt.Printf("Recycling '%s' \n", path)
