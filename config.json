@@ -1,0 +1,10 @@
+{
+    "rootDirectory": "C:/Downloads",
+    "directoriesToIgnore": [ "node_modules", "obj", ".git", ".hidden" ],
+    "pathsToIgnore": [
+        "C:/Downloads/.hidden",
+        "%userprofile%",
+        "%windir%",
+        "C:/ProgramData"
+    ]
+}
