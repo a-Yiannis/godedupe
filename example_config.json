@@ -2,7 +2,6 @@
     "rootDirectory": "C:/Downloads",
     "directoriesToIgnore": [ "node_modules", "obj", ".git" ],
     "pathsToIgnore": [
-        "C:/Downloads/.hidden",
         "%userprofile%",
         "%windir%",
         "C:/ProgramData"

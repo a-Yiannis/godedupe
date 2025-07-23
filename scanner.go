@@ -6,47 +6,18 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 )
-
-// regex to catch %VAR% on Windows
-var reEnvWindows = regexp.MustCompile(`%([^%]+)%`)
-
-// expandEnv replaces $VAR/${VAR} (Unix) and %VAR% (Windows) in p.
-func expandEnv(p string) string {
-	// Unix‐style
-	p = os.ExpandEnv(p)
-	// Windows‐style
-	return reEnvWindows.ReplaceAllStringFunc(p, func(m string) string {
-		return os.Getenv(m[1 : len(m)-1])
-	})
-}
 
 // findFilesBySize walks the directory tree starting from the root, and groups files by their size.
 // It ignores directories and file extensions specified in the config.
 func findFilesBySize(cfg Config) map[int64][]string {
 	filesBySize := make(map[int64][]string)
-	ignoreDirs := makeSet(cfg.IgnoreDirs)
-	ignoreExts := makeSet(lowerSlice(cfg.IgnoreExts))
-	// build an exact‐match set of cleaned, absolute, lowercase paths
-	var ignorePathsSet map[string]struct{}
-	if len(cfg.IgnorePaths) > 0 {
-		ignorePathsSet = make(map[string]struct{}, len(cfg.IgnorePaths))
-		for _, raw := range cfg.IgnorePaths {
-			// 1) expand env vars
-			p := expandEnv(raw)
-			// 2) if relative, resolve against cfg.Root
-			if !filepath.IsAbs(p) {
-				p = filepath.Join(cfg.Root, p)
-			}
-			// 3) clean and lowercase
-			p = normalizePath(p)
-			ignorePathsSet[p] = struct{}{}
-			fmt.Printf("Ignoring path: '%s'\n", p)
-		}
-	}
+
+	ignoreDirs := cfg.IgnoreDirs
+	ignoreExts := cfg.IgnoreExts
+	ignorePaths := cfg.IgnorePaths
 
 	lastUpdate := time.Now()
 	minimumPeriod := 500 * time.Duration(time.Millisecond)
@@ -63,9 +34,9 @@ func findFilesBySize(cfg Config) map[int64][]string {
 			lastUpdate = time.Now()
 		}
 		// 0) if this exact path is in the ignore set, skip it (and its subtree)
-		if ignorePathsSet != nil {
-			key := strings.ToLower(path)
-			if _, skip := ignorePathsSet[key]; skip {
+		key := NormalizeWindowsPath(path)
+		if len(ignorePaths) != 0 {
+			if _, skip := ignorePaths[key]; skip {
 				if d.IsDir() {
 					return filepath.SkipDir
 				}
@@ -73,7 +44,7 @@ func findFilesBySize(cfg Config) map[int64][]string {
 			}
 		}
 		if d.IsDir() {
-			if ignoreDirs[d.Name()] {
+			if ignoreDirs[strings.ToLower(d.Name())] {
 				return filepath.SkipDir
 			}
 			return nil
@@ -89,30 +60,27 @@ func findFilesBySize(cfg Config) map[int64][]string {
 	return filesBySize
 }
 
-func normalizePath(path string) string {
-	return strings.ReplaceAll(strings.ToLower(filepath.Clean(path)), "/", "\\")
-}
-
-func reportDuplicates(dupMap map[uint64][]string) {
+func reportDuplicates(dupMap map[uint64][]string) uint32 {
 	logFile, err := os.Create("duplicates.log")
 	if err != nil {
 		log.Fatalf("failed to create duplicates.log: %v", err)
 	}
 	defer logFile.Close()
 
-	found := false
+	var count uint32 = 0
 	for _, paths := range dupMap {
 		if len(paths) > 1 {
-			found = true
+			count++
 			for _, p := range paths {
 				logFile.WriteString(p + "\n")
 			}
 		}
 	}
 
-	if found {
+	if count > 0 {
 		fmt.Println("\nDuplicates found. See duplicates.log for a complete list.")
 	} else {
 		fmt.Println("\nNo duplicates found.")
 	}
+	return count
 }

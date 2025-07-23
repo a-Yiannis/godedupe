@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -14,7 +15,6 @@ import (
 func RecycleFile(path string) error {
 	return trash.Throw(path)
 }
-
 
 // AskSimple prompts the user with a yes/no question and waits for a single 'y' or 'n' keypress.
 
@@ -53,20 +53,9 @@ func GetUserInput(prompt string) string {
 	return ""
 }
 
-// makeSet creates a set (map[string]bool) from a slice of strings for efficient lookups.
-func makeSet(keys []string) map[string]bool {
-	m := make(map[string]bool, len(keys))
-	for _, k := range keys {
-		m[k] = true
-	}
-	return m
-}
-
-// lowerSlice converts all strings in a slice to lowercase.
-func lowerSlice(ss []string) []string {
-	out := make([]string, len(ss))
-	for i, s := range ss {
-		out[i] = strings.ToLower(s)
-	}
-	return out
+// NormalizeWindowsPath cleans p, replaces "/"→"\\", lowercases.
+func NormalizeWindowsPath(p string) string {
+	p = filepath.Clean(p)
+	p = strings.ReplaceAll(p, "/", "\\")
+	return strings.ToLower(p)
 }

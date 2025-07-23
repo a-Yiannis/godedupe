@@ -17,7 +17,7 @@ func main() {
 	if len(os.Args) >= 2 {
 		configFilePath = os.Args[1]
 	}
-	cfg, err := loadConfig(configFilePath)
+	cfg, err := LoadConfig(configFilePath)
 	if err != nil {
 		log.Fatalf("loadConfig: %v", err)
 	}
