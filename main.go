@@ -68,7 +68,7 @@ func main() {
 	}
 	// --- End Configuration Loading ---
 
-	fmt.Printf("Scanning %s …\n", cfg.Root)
+	fmt.Printf("Scanning \"%s\" …\n", cfg.Root)
 
 	// Phase 1: group by size
 	filesBySize := findFilesBySize(cfg)

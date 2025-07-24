@@ -56,7 +56,7 @@ func NewConfig(raw rawConfig) (Config, error) {
 		cwd, _ := os.Getwd()
 		root = filepath.Join(cwd, root)
 	}
-	root = NormalizeWindowsPath(root)
+	root = normalizeConfigPath(root)
 
 	cfg := Config{
 		Root:        root,
@@ -70,12 +70,18 @@ func NewConfig(raw rawConfig) (Config, error) {
 		if !filepath.IsAbs(p) {
 			p = filepath.Join(root, p)
 		}
-		p = NormalizeWindowsPath(p)
+		p = normalizeConfigPath(p)
 		cfg.IgnorePaths[p] = struct{}{}
 		fmt.Printf("Ignoring path: '%s'\n", p)
 	}
 
 	return cfg, nil
+}
+
+// normalizeConfigPath same as Normalize Path with the added bonus of expanding env variables
+func normalizeConfigPath(path string) string {
+	os.ExpandEnv(path)
+	return NormalizePath(path)
 }
 
 // makeSet creates a set (map[string]bool) from a slice of strings for efficient lookups.
