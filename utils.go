@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"syscall"
@@ -19,6 +20,21 @@ const (
 	cyan  = "\033[36m"
 	reset = "\033[0m"
 )
+
+var emphaticPattern = regexp.MustCompile(`\*\*(.*?)\*\*|__(.*?)__`)
+var emphaticSubPattern = "\x1b[31m$1\x1b[0m"
+
+func println(s string) {
+	colored := emphaticPattern.ReplaceAllString(s, emphaticSubPattern)
+	fmt.Println(colored)
+}
+func printf(format string, args ...interface{}) {
+	// First format the string with the provided arguments
+	formatted := fmt.Sprintf(format, args...)
+	// Then apply the emphasis coloring
+	colored := emphaticPattern.ReplaceAllString(formatted, emphaticSubPattern)
+	fmt.Println(colored)
+}
 
 var handleSlashes func(string) string
 
@@ -41,7 +57,11 @@ func NormalizePath(p string) string {
 }
 
 func RecycleFile(path string) error {
-	return trash.Throw(path)
+	err := trash.Throw(path)
+	if err != nil {
+		WriteRed(fmt.Sprintf("Failed to recycle %s: %v\n", path, err))
+	}
+	return err
 }
 
 func AskStrict(prompt string) bool {

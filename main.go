@@ -134,7 +134,7 @@ func main() {
 	count := reportDuplicates(dupMap)
 
 	elapsed := time.Since(start)
-	fmt.Printf("Elapsed: %s\n", elapsed)
+	printf("Elapsed: %.dms\n", elapsed.Milliseconds())
 
 	if count > 0 && AskStrict("Should I recycle the duplicates?") {
 		recycle(dupMap)
