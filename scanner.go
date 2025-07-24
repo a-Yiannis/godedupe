@@ -34,7 +34,7 @@ func findFilesBySize(cfg Config) map[int64][]string {
 			lastUpdate = time.Now()
 		}
 		// 0) if this exact path is in the ignore set, skip it (and its subtree)
-		key := NormalizeWindowsPath(path)
+		key := NormalizePath(path)
 		if len(ignorePaths) != 0 {
 			if _, skip := ignorePaths[key]; skip {
 				if d.IsDir() {

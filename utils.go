@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 
@@ -18,6 +19,26 @@ const (
 	cyan  = "\033[36m"
 	reset = "\033[0m"
 )
+
+var handleSlashes func(string) string
+
+func init() {
+	if runtime.GOOS == "windows" {
+		handleSlashes = func(p string) string {
+			return strings.ReplaceAll(p, "/", "\\")
+		}
+	} else {
+		handleSlashes = func(p string) string {
+			return filepath.ToSlash(p)
+		}
+	}
+}
+
+func NormalizePath(p string) string {
+	p = filepath.Clean(p)
+	p = handleSlashes(p)
+	return strings.ToLower(p)
+}
 
 func RecycleFile(path string) error {
 	return trash.Throw(path)
@@ -77,13 +98,6 @@ func GetUserInput(prompt string) string {
 		fmt.Fprintln(os.Stderr, "Error reading from input:", err)
 	}
 	return ""
-}
-
-// NormalizeWindowsPath cleans p, replaces "/"→"\\", lowercases.
-func NormalizeWindowsPath(p string) string {
-	p = filepath.Clean(p)
-	p = strings.ReplaceAll(p, "/", "\\")
-	return strings.ToLower(p)
 }
 
 func WriteRed(msg string) {
