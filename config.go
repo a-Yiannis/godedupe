@@ -57,7 +57,6 @@ func NewConfig(raw rawConfig) (Config, error) {
 		root = filepath.Join(cwd, root)
 	}
 	root = normalizeConfigPath(root)
-	root = normalizeConfigPath(root)
 
 	cfg := Config{
 		Root:        root,
@@ -83,12 +82,6 @@ func NewConfig(raw rawConfig) (Config, error) {
 // normalizeConfigPath same as Normalize Path with the added bonus of expanding env variables
 func normalizeConfigPath(path string) string {
 	path = os.ExpandEnv(path)
-	return NormalizePath(path)
-}
-
-// normalizeConfigPath same as Normalize Path with the added bonus of expanding env variables
-func normalizeConfigPath(path string) string {
-	os.ExpandEnv(path)
 	return NormalizePath(path)
 }
 
