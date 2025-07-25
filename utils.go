@@ -27,6 +27,7 @@ var (
 	errorLog      *log.Logger
 	logFileHandle *os.File
 	logOnce       sync.Once
+	autoYes       bool
 )
 var emphaticPattern = regexp.MustCompile(`\*\*(.*?)\*\*|__(.*?)__`)
 var emphaticSubPattern = "\x1b[31m$1\x1b[0m"
@@ -43,6 +44,10 @@ func init() {
 			return filepath.ToSlash(p)
 		}
 	}
+}
+
+func SetAutoYes(val bool) {
+	autoYes = val
 }
 
 func initLog() {
@@ -96,6 +101,9 @@ func Ask(prompt string) bool {
 
 // askSimple prompts the user with a yes/no question and waits for a single 'y' or 'n' keypress.
 func askSimple(prompt string, strict bool) bool {
+	if autoYes {
+		return true
+	}
 	h := windows.Handle(syscall.Stdin)
 	var orig uint32
 	if err := windows.GetConsoleMode(h, &orig); err != nil {

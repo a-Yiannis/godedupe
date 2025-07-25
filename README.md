@@ -1,6 +1,6 @@
 # Go Dedupe
 
-A simple and efficient duplicate file finder written in Go.
+A simple and efficient duplicate file finder written in Go.  
 Most of this file (README.md) has been written by Gemini-2.5-Pro.
 
 ## How it works

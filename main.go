@@ -37,12 +37,17 @@ func main() {
 		ignorePaths stringSlice
 	)
 
+	var autoYes bool
 	flag.StringVar(&configPath, "config", "config.json", "Path to the configuration file.")
 	flag.StringVar(&root, "root", "", "Root directory to scan (overrides config file).")
 	flag.Var(&ignoreDirs, "ignore-dir", "Directory to ignore (can be specified multiple times).")
 	flag.Var(&ignoreExts, "ignore-ext", "File extension to ignore (can be specified multiple times).")
 	flag.Var(&ignorePaths, "ignore-path", "Path to ignore (can be specified multiple times).")
+	flag.BoolVar(&autoYes, "y", false, "Automatically answer yes to all prompts.")
+	flag.BoolVar(&autoYes, "yes", false, "Automatically answer yes to all prompts.")
 	flag.Parse()
+
+	SetAutoYes(autoYes)
 
 	rawCfg, err := LoadConfig(configPath)
 	if err != nil && !os.IsNotExist(err) {
