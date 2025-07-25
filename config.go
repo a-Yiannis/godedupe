@@ -80,7 +80,7 @@ func NewConfig(raw rawConfig) (Config, error) {
 
 // normalizeConfigPath same as Normalize Path with the added bonus of expanding env variables
 func normalizeConfigPath(path string) string {
-	os.ExpandEnv(path)
+	path = os.ExpandEnv(path)
 	return NormalizePath(path)
 }
 
