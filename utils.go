@@ -3,11 +3,13 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
+	"sync"
 	"syscall"
 
 	"github.com/hymkor/trash-go"
@@ -21,20 +23,13 @@ const (
 	reset = "\033[0m"
 )
 
+var (
+	errorLog      *log.Logger
+	logFileHandle *os.File
+	logOnce       sync.Once
+)
 var emphaticPattern = regexp.MustCompile(`\*\*(.*?)\*\*|__(.*?)__`)
 var emphaticSubPattern = "\x1b[31m$1\x1b[0m"
-
-func println(s string) {
-	colored := emphaticPattern.ReplaceAllString(s, emphaticSubPattern)
-	fmt.Println(colored)
-}
-func printf(format string, args ...interface{}) {
-	// First format the string with the provided arguments
-	formatted := fmt.Sprintf(format, args...)
-	// Then apply the emphasis coloring
-	colored := emphaticPattern.ReplaceAllString(formatted, emphaticSubPattern)
-	fmt.Println(colored)
-}
 
 var handleSlashes func(string) string
 
@@ -50,6 +45,34 @@ func init() {
 	}
 }
 
+func initLog() {
+	var err error
+	logFileHandle, err = os.OpenFile("error.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to open error log file: %v\n", err)
+		return
+	}
+	errorLog = log.New(logFileHandle, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
+}
+
+func CloseLog() {
+	if logFileHandle != nil {
+		logFileHandle.Close()
+	}
+}
+
+func Println(s string) {
+	colored := emphaticPattern.ReplaceAllString(s, emphaticSubPattern)
+	fmt.Println(colored)
+}
+func Printf(format string, args ...any) {
+	// First format the string with the provided arguments
+	formatted := fmt.Sprintf(format, args...)
+	// Then apply the emphasis coloring
+	colored := emphaticPattern.ReplaceAllString(formatted, emphaticSubPattern)
+	fmt.Println(colored)
+}
+
 func NormalizePath(p string) string {
 	p = filepath.Clean(p)
 	p = handleSlashes(p)
@@ -59,7 +82,7 @@ func NormalizePath(p string) string {
 func RecycleFile(path string) error {
 	err := trash.Throw(path)
 	if err != nil {
-		WriteRed(fmt.Sprintf("Failed to recycle %s: %v\n", path, err))
+		PrintEf("Failed to recycle %s: %v", path, err)
 	}
 	return err
 }
@@ -115,7 +138,7 @@ func GetUserInput(prompt string) string {
 		return scanner.Text()
 	}
 	if err := scanner.Err(); err != nil {
-		fmt.Fprintln(os.Stderr, "Error reading from input:", err)
+		PrintEf("Error reading from input: %v", err)
 	}
 	return ""
 }
@@ -126,4 +149,16 @@ func WriteRed(msg string) {
 
 func WriteCyan(msg string) {
 	fmt.Print(cyan + msg + reset)
+}
+
+func PrintE(err error) {
+	fmt.Printf("%sError!%s %v\n", red, reset, err)
+	logOnce.Do(initLog)
+	if errorLog != nil {
+		errorLog.Output(2, err.Error())
+	}
+}
+
+func PrintEf(format string, args ...interface{}) {
+	PrintE(fmt.Errorf(format, args...))
 }

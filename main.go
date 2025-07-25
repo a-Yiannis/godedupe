@@ -26,6 +26,7 @@ func (i *stringSlice) Set(value string) error {
 
 func main() {
 	start := time.Now()
+	defer CloseLog()
 
 	// --- Configuration Loading ---
 	var (
@@ -45,7 +46,8 @@ func main() {
 
 	rawCfg, err := LoadConfig(configPath)
 	if err != nil && !os.IsNotExist(err) {
-		log.Fatalf("loadConfig: %v", err)
+		PrintEf("loadConfig: %v", err)
+		os.Exit(1)
 	}
 
 	// Override config with flags if they are set
@@ -64,7 +66,8 @@ func main() {
 
 	cfg, err := NewConfig(rawCfg)
 	if err != nil {
-		log.Fatalf("newConfig: %v", err)
+		PrintEf("newConfig: %v", err)
+		os.Exit(1)
 	}
 	// --- End Configuration Loading ---
 
@@ -95,7 +98,7 @@ func main() {
 				defer func() { <-sem }()
 				h, err := partialHash(p)
 				if err != nil {
-					log.Printf("partialHash %s: %v", p, err)
+					PrintEf("partialHash %s: %v", p, err)
 					return
 				}
 				pmu.Lock()
@@ -118,7 +121,7 @@ func main() {
 					defer func() { <-sem }()
 					h, err := fullHash(p)
 					if err != nil {
-						log.Printf("fullHash %s: %v", p, err)
+						PrintEf("fullHash %s: %v", p, err)
 						return
 					}
 					mu.Lock()
@@ -134,7 +137,7 @@ func main() {
 	count := reportDuplicates(dupMap)
 
 	elapsed := time.Since(start)
-	printf("Elapsed: %.dms\n", elapsed.Milliseconds())
+	Printf("Elapsed: %.dms\n", elapsed.Milliseconds())
 
 	if count > 0 && AskStrict("Should I recycle the duplicates?") {
 		recycle(dupMap)
@@ -144,7 +147,7 @@ func main() {
 func recycle(dupMap map[uint64][]string) {
 	f, err := os.OpenFile("recycled.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		log.Printf("open log: %v", err)
+		PrintEf("open log: %v", err)
 		return
 	}
 	defer f.Close()
@@ -166,7 +169,7 @@ func recycle(dupMap map[uint64][]string) {
 			fmt.Printf("Recycling '%s' \n", path)
 			err := RecycleFile(path)
 			if err != nil {
-				log.Printf("RecycleFile %s: %v", path, err)
+				PrintEf("RecycleFile %s: %v", path, err)
 			} else {
 				logger.Println(path)
 			}
@@ -177,12 +180,12 @@ func recycle(dupMap map[uint64][]string) {
 func sortByModTime(a, b string) int {
 	info_a, err := os.Stat(a)
 	if err != nil {
-		log.Printf("stat %s: %v", a, err)
+		PrintEf("stat %s: %v", a, err)
 		return 0
 	}
 	info_b, err := os.Stat(b)
 	if err != nil {
-		log.Printf("stat %s: %v", b, err)
+		PrintEf("stat %s: %v", b, err)
 		return 0
 	}
 	ta := info_a.ModTime()
