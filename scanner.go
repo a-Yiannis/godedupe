@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"godedupe/utils"
 )
 
 // findFilesBySize walks the directory tree starting from the root, and groups files by their size.
@@ -24,7 +26,7 @@ func findFilesBySize(cfg Config) map[int64][]string {
 
 	filepath.WalkDir(cfg.Root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			PrintEf("walk: %v", err)
+			utils.PrintEf("walk: %v", err)
 			return nil
 		}
 		count++
@@ -33,7 +35,7 @@ func findFilesBySize(cfg Config) map[int64][]string {
 			lastUpdate = time.Now()
 		}
 		// 0) if this exact path is in the ignore set, skip it (and its subtree)
-		key := NormalizePath(path)
+		key := utils.NormalizePath(path)
 		if len(ignorePaths) != 0 {
 			if _, skip := ignorePaths[key]; skip {
 				if d.IsDir() {
@@ -62,7 +64,7 @@ func findFilesBySize(cfg Config) map[int64][]string {
 func reportDuplicates(dupMap map[uint64][]string) uint32 {
 	logFile, err := os.Create("duplicates.log")
 	if err != nil {
-		PrintEf("failed to create duplicates.log: %v", err)
+		utils.PrintEf("failed to create duplicates.log: %v", err)
 		os.Exit(1)
 	}
 	defer logFile.Close()
@@ -78,9 +80,10 @@ func reportDuplicates(dupMap map[uint64][]string) uint32 {
 	}
 
 	if count > 0 {
-		Printf("\nDuplicates **%d** found. See **duplicates.log** for a complete list.\n", count)
+		utils.Printf("\nDuplicates **%d** found. See **duplicates.log** for a complete list.\n", count)
 	} else {
-		WriteCyan("\nNo duplicates found.\n")
+		utils.WriteCyan("\nNo duplicates found.\n")
 	}
 	return count
 }
+

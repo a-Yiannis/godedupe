@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"godedupe/utils"
 )
 
 // Config holds the application configuration.
@@ -56,7 +58,7 @@ func NewConfig(raw rawConfig) (Config, error) {
 		cwd, _ := os.Getwd()
 		root = filepath.Join(cwd, root)
 	}
-	root = normalizeConfigPath(root)
+	root = utils.NormalizePath(os.ExpandEnv(root))
 
 	cfg := Config{
 		Root:        root,
@@ -70,19 +72,12 @@ func NewConfig(raw rawConfig) (Config, error) {
 		if !filepath.IsAbs(p) {
 			p = filepath.Join(root, p)
 		}
-		p = normalizeConfigPath(p)
-		p = normalizeConfigPath(p)
+		p = utils.NormalizePath(os.ExpandEnv(p))
 		cfg.IgnorePaths[p] = struct{}{}
 		fmt.Printf("Ignoring path: '%s'\n", p)
 	}
 
 	return cfg, nil
-}
-
-// normalizeConfigPath same as Normalize Path with the added bonus of expanding env variables
-func normalizeConfigPath(path string) string {
-	path = os.ExpandEnv(path)
-	return NormalizePath(path)
 }
 
 // makeSet creates a set (map[string]bool) from a slice of strings for efficient lookups.
@@ -93,3 +88,4 @@ func makeSet(keys []string) map[string]bool {
 	}
 	return m
 }
+

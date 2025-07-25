@@ -10,34 +10,24 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"godedupe/utils"
 )
-
-// stringSlice is a custom flag type to handle multiple string flags
-type stringSlice []string
-
-func (i *stringSlice) String() string {
-	return fmt.Sprintf("%v", *i)
-}
-
-func (i *stringSlice) Set(value string) error {
-	*i = append(*i, value)
-	return nil
-}
 
 func main() {
 	start := time.Now()
-	defer CloseLog()
+	defer utils.CloseLog()
 
 	// --- Configuration Loading ---
 	var (
 		configPath  string
 		root        string
-		ignoreDirs  stringSlice
-		ignoreExts  stringSlice
-		ignorePaths stringSlice
+		ignoreDirs  utils.StringSlice
+		ignoreExts  utils.StringSlice
+		ignorePaths utils.StringSlice
+		autoYes     bool
 	)
 
-	var autoYes bool
 	flag.StringVar(&configPath, "config", "config.json", "Path to the configuration file.")
 	flag.StringVar(&root, "root", "", "Root directory to scan (overrides config file).")
 	flag.Var(&ignoreDirs, "ignore-dir", "Directory to ignore (can be specified multiple times).")
@@ -47,11 +37,11 @@ func main() {
 	flag.BoolVar(&autoYes, "yes", false, "Automatically answer yes to all prompts.")
 	flag.Parse()
 
-	SetAutoYes(autoYes)
+	utils.SetAutoYes(autoYes)
 
 	rawCfg, err := LoadConfig(configPath)
 	if err != nil && !os.IsNotExist(err) {
-		PrintEf("loadConfig: %v", err)
+		utils.PrintEf("loadConfig: %v", err)
 		os.Exit(1)
 	}
 
@@ -71,7 +61,7 @@ func main() {
 
 	cfg, err := NewConfig(rawCfg)
 	if err != nil {
-		PrintEf("newConfig: %v", err)
+		utils.PrintEf("newConfig: %v", err)
 		os.Exit(1)
 	}
 	// --- End Configuration Loading ---
@@ -103,7 +93,7 @@ func main() {
 				defer func() { <-sem }()
 				h, err := partialHash(p)
 				if err != nil {
-					PrintEf("partialHash %s: %v", p, err)
+					utils.PrintEf("partialHash %s: %v", p, err)
 					return
 				}
 				pmu.Lock()
@@ -126,7 +116,7 @@ func main() {
 					defer func() { <-sem }()
 					h, err := fullHash(p)
 					if err != nil {
-						PrintEf("fullHash %s: %v", p, err)
+						utils.PrintEf("fullHash %s: %v", p, err)
 						return
 					}
 					mu.Lock()
@@ -142,9 +132,9 @@ func main() {
 	count := reportDuplicates(dupMap)
 
 	elapsed := time.Since(start)
-	Printf("Elapsed: %.dms\n", elapsed.Milliseconds())
+	utils.Printf("Elapsed: %.dms\n", elapsed.Milliseconds())
 
-	if count > 0 && AskStrict("Should I recycle the duplicates?") {
+	if count > 0 && utils.AskStrict("Should I recycle the duplicates?") {
 		recycle(dupMap)
 	}
 }
@@ -152,7 +142,7 @@ func main() {
 func recycle(dupMap map[uint64][]string) {
 	f, err := os.OpenFile("recycled.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		PrintEf("open log: %v", err)
+		utils.PrintEf("open log: %v", err)
 		return
 	}
 	defer f.Close()
@@ -166,15 +156,15 @@ func recycle(dupMap map[uint64][]string) {
 
 		s := paths[1:]
 		fmt.Println("\n" + strings.Join(s, "\n\t"))
-		if !Ask("Going to recycle this files, are you sure?") {
-			WriteRed("\nFile set skipped!")
+		if !utils.Ask("Going to recycle this files, are you sure?") {
+			utils.WriteRed("\nFile set skipped!")
 			continue
 		}
 		for _, path := range paths[1:] {
 			fmt.Printf("Recycling '%s' \n", path)
-			err := RecycleFile(path)
+			err := utils.RecycleFile(path)
 			if err != nil {
-				PrintEf("RecycleFile %s: %v", path, err)
+				utils.PrintEf("RecycleFile %s: %v", path, err)
 			} else {
 				logger.Println(path)
 			}
@@ -185,12 +175,12 @@ func recycle(dupMap map[uint64][]string) {
 func sortByModTime(a, b string) int {
 	info_a, err := os.Stat(a)
 	if err != nil {
-		PrintEf("stat %s: %v", a, err)
+		utils.PrintEf("stat %s: %v", a, err)
 		return 0
 	}
 	info_b, err := os.Stat(b)
 	if err != nil {
-		PrintEf("stat %s: %v", b, err)
+		utils.PrintEf("stat %s: %v", b, err)
 		return 0
 	}
 	ta := info_a.ModTime()
